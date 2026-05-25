@@ -43,6 +43,9 @@ import { Subscription } from 'rxjs';
             <span class="chip bg-gray-100 text-gray-600">⏳ Pendiente</span>
           }
         </div>
+        @if (prefilled() && !myConfirmed()) {
+          <p class="text-xs text-gray-500 mb-2">Pre-rellenado con tu horario laboral. Ajusta lo que cambie esta semana.</p>
+        }
         <div class="flex gap-2 flex-wrap mb-2">
           @for (d of weekdays; track d) {
             <button
@@ -123,6 +126,7 @@ export class AvailabilityComponent implements OnInit, OnDestroy {
   readonly proposalGenerating = signal(false);
 
   readonly myOfficeDays = signal<Set<DayKey>>(new Set());
+  readonly prefilled = signal(false);
 
   readonly rangeLabel = computed(() => formatRange(this.weekStart()));
   readonly partnerName = computed(() => this.household.partner()?.name ?? 'Pareja');
@@ -164,7 +168,21 @@ export class AvailabilityComponent implements OnInit, OnDestroy {
       const av = await this.api.getAvailability(this.weekStart());
       this.availability.set(av);
       const mine = this.myEntry();
-      this.myOfficeDays.set(new Set((mine?.office_days ?? []) as DayKey[]));
+      if (mine) {
+        this.myOfficeDays.set(new Set((mine.office_days ?? []) as DayKey[]));
+        this.prefilled.set(false);
+      } else {
+        // Sin entrada para esta semana → pre-rellenamos con el horario laboral
+        // (los días que el usuario marcó como NO teletrabajo en el onboarding).
+        const schedule = this.auth.currentUser()?.work_schedule ?? null;
+        const defaults: DayKey[] = [];
+        for (const d of this.weekdays) {
+          const day = schedule?.[d];
+          if (day && day.location === 'office') defaults.push(d);
+        }
+        this.myOfficeDays.set(new Set(defaults));
+        this.prefilled.set(defaults.length > 0);
+      }
     } finally {
       this.loading.set(false);
     }
