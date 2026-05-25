@@ -65,6 +65,9 @@ function parseErrorBody(raw: unknown): ApiError | null {
           ¿Aún no tienes cuenta?
           <a routerLink="/signup" class="text-primary font-medium">Regístrate</a>
         </p>
+        <p class="text-center text-sm text-gray-500 mt-3">
+          <a routerLink="/forgot-password" class="text-primary">¿Olvidaste tu contraseña?</a>
+        </p>
       </div>
     </div>
   `

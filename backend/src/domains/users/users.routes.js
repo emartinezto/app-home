@@ -7,6 +7,7 @@ import {
   workScheduleSchema,
   pushSubscriptionSchema,
   subscriptionIdParam,
+  partnerResetSchema,
 } from './users.validators.js';
 import {
   getMeController,
@@ -16,6 +17,7 @@ import {
   listPushSubscriptionsController,
   removePushSubscriptionController,
   deleteMeController,
+  resetPartnerPasswordController,
 } from './users.controller.js';
 
 export const usersRouter = Router();
@@ -50,6 +52,13 @@ usersRouter.delete(
   requireAuth,
   validate({ params: subscriptionIdParam }),
   asyncHandler(removePushSubscriptionController),
+);
+
+usersRouter.post(
+  '/me/partner-reset',
+  requireAuth,
+  validate({ body: partnerResetSchema }),
+  asyncHandler(resetPartnerPasswordController),
 );
 
 usersRouter.delete('/me', requireAuth, asyncHandler(deleteMeController));

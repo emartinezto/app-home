@@ -4,6 +4,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { HouseholdStore } from '@core/stores/household.store';
 import { AvatarComponent } from '@shared/components/avatar.component';
+import { BottomSheetComponent } from '@shared/components/bottom-sheet.component';
 import { ConfirmModalComponent } from '@shared/components/confirm-modal.component';
 import { ToastService } from '@core/services/toast.service';
 import { PushService } from '@core/services/push.service';
@@ -13,7 +14,7 @@ import { es } from 'date-fns/locale';
 @Component({
   selector: 'cg-profile',
   standalone: true,
-  imports: [AvatarComponent, ConfirmModalComponent],
+  imports: [AvatarComponent, BottomSheetComponent, ConfirmModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="mb-4">
@@ -75,9 +76,49 @@ import { es } from 'date-fns/locale';
 
       <button class="btn-secondary w-full mb-2" (click)="editSchedule()">Editar mi horario laboral</button>
       <button class="btn-secondary w-full mb-2" (click)="goSettings()">Ajustes del hogar</button>
+      @if (partnerName(); as pname) {
+        <button class="btn-secondary w-full mb-2" (click)="openPartnerReset()">Resetear contraseña de {{ pname }}</button>
+      }
       <button class="btn-outline w-full mb-2" (click)="logout()">Cerrar sesión</button>
       <button class="btn-danger-outline w-full" (click)="confirmLeave.set(true)">Salir del hogar</button>
     }
+
+    <cg-bottom-sheet [open]="resetOpen()" (close)="resetOpen.set(false)">
+      @if (resetStep() === 'edit') {
+        <h3 class="font-medium text-lg mb-2">Resetear contraseña de {{ partnerName() }}</h3>
+        <p class="text-sm text-gray-600 mb-3">
+          Elige una contraseña nueva o pulsa "Generar". Después se la mandas por WhatsApp.
+        </p>
+        <div class="mb-3">
+          <label class="label">Contraseña nueva</label>
+          <input class="input" [value]="newPassword()" (input)="onPasswordInput($event)"
+                 placeholder="Mínimo 8 caracteres" />
+        </div>
+        <button type="button" class="btn-ghost w-full text-sm mb-3" (click)="generateRandom()">
+          Generar contraseña aleatoria
+        </button>
+        <div class="flex gap-2">
+          <button type="button" class="btn-secondary flex-1" (click)="resetOpen.set(false)">Cancelar</button>
+          <button type="button" class="btn-primary flex-1"
+                  [disabled]="resetSaving() || newPassword().length < 8"
+                  (click)="saveReset()">
+            {{ resetSaving() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      } @else {
+        <h3 class="font-medium text-lg mb-2">¡Listo!</h3>
+        <p class="text-sm text-gray-600 mb-3">
+          Comparte esta contraseña con {{ partnerName() }}. Cuando la use, debería cambiarla.
+        </p>
+        <div class="card bg-gray-50 border-gray-200 mb-3 break-all font-mono text-sm">
+          {{ newPassword() }}
+        </div>
+        <button type="button" class="btn-secondary w-full mb-2" (click)="copyPassword()">Copiar</button>
+        <a class="btn-primary w-full text-center mb-2"
+           [href]="whatsappLink()" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <button type="button" class="btn-ghost w-full text-sm" (click)="resetOpen.set(false)">Cerrar</button>
+      }
+    </cg-bottom-sheet>
 
     <cg-confirm-modal
       [open]="confirmLeave()"
@@ -104,6 +145,18 @@ export class ProfileComponent implements OnInit {
   readonly household = this.householdStore.household;
   readonly confirmLeave = signal(false);
   readonly pushEnabled = signal(false);
+
+  readonly resetOpen = signal(false);
+  readonly resetStep = signal<'edit' | 'done'>('edit');
+  readonly resetSaving = signal(false);
+  readonly newPassword = signal<string>('');
+  readonly partnerName = computed(() => this.householdStore.partner()?.name ?? '');
+  readonly whatsappLink = computed(() => {
+    const pname = this.partnerName();
+    const pw = this.newPassword();
+    const text = `${pname}, te he reseteado la contraseña de Casa García. Es: ${pw}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  });
   readonly prefs = signal<{ proposal: boolean; reassignment: boolean; reminders: boolean }>({
     proposal: true, reassignment: true, reminders: true
   });
@@ -158,6 +211,47 @@ export class ProfileComponent implements OnInit {
 
   goSettings(): void { void this.router.navigateByUrl('/settings'); }
   editSchedule(): void { void this.router.navigate(['/onboarding/schedule'], { queryParams: { edit: '1' } }); }
+
+  openPartnerReset(): void {
+    this.resetStep.set('edit');
+    this.newPassword.set('');
+    this.resetOpen.set(true);
+  }
+
+  onPasswordInput(e: Event): void {
+    this.newPassword.set((e.target as HTMLInputElement).value);
+  }
+
+  generateRandom(): void {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let out = '';
+    const arr = new Uint32Array(12);
+    crypto.getRandomValues(arr);
+    for (const n of arr) out += chars[n % chars.length];
+    this.newPassword.set(out);
+  }
+
+  async saveReset(): Promise<void> {
+    if (this.resetSaving() || this.newPassword().length < 8) return;
+    this.resetSaving.set(true);
+    try {
+      await this.api.partnerResetPassword(this.newPassword());
+      this.resetStep.set('done');
+    } catch {
+      this.toast.error('No se pudo resetear la contraseña.');
+    } finally {
+      this.resetSaving.set(false);
+    }
+  }
+
+  async copyPassword(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.newPassword());
+      this.toast.success('Copiada');
+    } catch {
+      this.toast.info(this.newPassword());
+    }
+  }
 
   async logout(): Promise<void> {
     await this.auth.logout();

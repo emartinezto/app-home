@@ -35,3 +35,8 @@ export async function deleteMeController(req, res) {
   await svc.deleteMyAccount(req.user.id);
   res.status(204).end();
 }
+
+export async function resetPartnerPasswordController(req, res) {
+  const out = await svc.resetPartnerPassword(req.user.id, req.body.new_password);
+  res.json(out);
+}

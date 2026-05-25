@@ -46,6 +46,13 @@ export class ApiService {
     return firstValueFrom(this.http.post<{ invite_code: string }>(`${this.base}/households/me/invite-code/regenerate`, {}));
   }
 
+  partnerResetPassword(newPassword: string): Promise<{ partner_id: number; partner_name: string }> {
+    return firstValueFrom(this.http.post<{ partner_id: number; partner_name: string }>(
+      `${this.base}/users/me/partner-reset`,
+      { new_password: newPassword }
+    ));
+  }
+
   // ── Users ───────────────────────────────────────────────────────────────
   getMe(): Promise<{ user: User }> {
     return firstValueFrom(this.http.get<{ user: User }>(`${this.base}/users/me`));

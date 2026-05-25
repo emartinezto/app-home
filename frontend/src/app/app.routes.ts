@@ -19,6 +19,10 @@ export const appRoutes: Routes = [
     path: 'join',
     loadComponent: () => import('./features/auth/join.component').then(m => m.JoinComponent)
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () => import('./features/auth/forgot-password.component').then(m => m.ForgotPasswordComponent)
+  },
 
   // Onboarding (requiere auth pero NO household)
   {

@@ -62,6 +62,10 @@ export async function updateUserProfile(userId, { name, avatar_color }) {
   await query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
 }
 
+export async function updatePasswordHash(userId, passwordHash) {
+  await query(`UPDATE users SET password_hash = ? WHERE id = ?`, [passwordHash, userId]);
+}
+
 export async function updateWorkSchedule(userId, schedule) {
   await query(`UPDATE users SET work_schedule = ? WHERE id = ?`, [
     JSON.stringify(schedule),

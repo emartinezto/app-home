@@ -4,6 +4,7 @@ import {
   findUserById,
   findUsersByHousehold,
   updateUserProfile,
+  updatePasswordHash,
   updateWorkSchedule,
   insertPushSubscription,
   findPushSubscriptionsByUser,
@@ -12,6 +13,7 @@ import {
 } from './users.repository.js';
 import { archiveHousehold } from '../households/households.repository.js';
 import { revokeAllUserRefreshTokens } from '../auth/auth.repository.js';
+import { hashPassword } from '../../utils/password.js';
 
 function publicUser(u) {
   return {
@@ -90,6 +92,24 @@ export async function deleteMyAccount(userId) {
     if (willArchive) await archiveHousehold(conn, householdId);
   });
   await revokeAllUserRefreshTokens(userId).catch(() => {}); // user ya borrado, irrelevante si falla
+}
+
+export async function resetPartnerPassword(callerUserId, newPassword) {
+  const me = await findUserById(callerUserId);
+  if (!me) throw E.notFound('Usuario no encontrado');
+  if (!me.household_id) {
+    throw E.unprocessable('NO_HOUSEHOLD', 'No perteneces a un hogar');
+  }
+  const members = await findUsersByHousehold(me.household_id);
+  const partner = members.find((m) => Number(m.id) !== Number(callerUserId));
+  if (!partner) {
+    throw E.unprocessable('NO_PARTNER', 'Tu hogar no tiene pareja');
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await updatePasswordHash(partner.id, passwordHash);
+  // Cierra cualquier sesión activa del partner para que tenga que entrar con la nueva.
+  await revokeAllUserRefreshTokens(partner.id).catch(() => {});
+  return { partner_id: Number(partner.id), partner_name: partner.name };
 }
 
 export { findUsersByHousehold };

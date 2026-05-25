@@ -31,6 +31,10 @@ export const workScheduleSchema = z
   )
   .strict();
 
+export const partnerResetSchema = z.object({
+  new_password: z.string().min(8).max(128),
+});
+
 export const updateProfileSchema = z
   .object({
     name: z.string().trim().min(1).max(100).optional(),
