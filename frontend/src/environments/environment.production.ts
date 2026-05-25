@@ -1,6 +1,4 @@
-// IMPORTANTE: reemplaza BACKEND_URL_RENDER con la URL real que te dé Render
-// (algo como https://casa-garcia-backend.onrender.com) y vuelve a desplegar el front.
-const BACKEND_URL = 'https://BACKEND_URL_RENDER';
+const BACKEND_URL = 'https://app-home-backend.onrender.com';
 
 export const environment = {
   production: true,
