@@ -95,7 +95,7 @@ export class SignupComponent {
           const me = this.auth.currentUser();
           if (me) this.auth.setUser({ ...me, household_id: res.household.id });
           this.toast.success('Cuenta creada y unido al hogar');
-          void this.router.navigateByUrl('/');
+          void this.router.navigate(['/onboarding/schedule'], { queryParams: { joining: '1' } });
           return;
         } catch {
           this.toast.info('Cuenta creada, pero no pudimos usar el código.');

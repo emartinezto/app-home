@@ -83,7 +83,7 @@ export class JoinComponent {
       if (me) this.auth.setUser({ ...me, household_id: res.household.id });
       this.toast.success('Te has unido al hogar');
       this.status.set('success');
-      void this.router.navigateByUrl('/');
+      void this.router.navigate(['/onboarding/schedule'], { queryParams: { joining: '1' } });
     } catch (e) {
       const err = e as HttpErrorResponse;
       const apiCode = (err.error as ApiError | undefined)?.error;

@@ -47,7 +47,19 @@
       "Bash(grep -E \"^\\\\.env|^.env$\" /Users/hectorgarcia/Desktop/app/backend/.gitignore)",
       "Bash(grep -E \"^\\\\.env|^.env$|node_modules\" /Users/hectorgarcia/Desktop/app/frontend/.gitignore)",
       "Bash(git config *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(grep -E \"\\\\.env$|node_modules\")",
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(brew --version)",
+      "Bash(brew install *)",
+      "Bash(curl -sS https://app-home-backend.onrender.com/health)",
+      "Bash(curl -sS -I https://app-home-xi.vercel.app)",
+      "Bash(curl -sS https://www.githubstatus.com/api/v2/status.json)",
+      "Bash(GIT_TRACE=1 git push)",
+      "Bash(tee /tmp/push.log)"
     ]
   }
 }

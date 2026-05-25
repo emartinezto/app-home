@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { HouseholdStore } from '@core/stores/household.store';
@@ -24,8 +24,12 @@ type ScheduleForm = Record<DayKey, FormGroup<DayForm>>;
   template: `
     <div class="min-h-screen bg-white flex flex-col safe-top safe-bottom">
       <div class="container-page px-4 pt-6 pb-12 flex-1 flex flex-col">
-        <cg-progress-bar [value]="60" />
-        <p class="text-xs text-gray-500 mt-2">Paso 3 de 5</p>
+        @if (joining()) {
+          <p class="text-xs text-gray-500">Último paso para unirte al hogar</p>
+        } @else {
+          <cg-progress-bar [value]="60" />
+          <p class="text-xs text-gray-500 mt-2">Paso 3 de 5</p>
+        }
 
         <h1 class="text-2xl font-medium text-gray-900 mt-4">Tu horario laboral</h1>
         <p class="text-sm text-gray-500 mb-6">Indica tus horas habituales para los días de oficina.</p>
@@ -68,11 +72,13 @@ export class OnboardingScheduleComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private household = inject(HouseholdStore);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toast = inject(ToastService);
 
   readonly loading = signal(false);
   readonly weekdays: DayKey[] = dayKeysWeekdays();
+  readonly joining = signal(this.route.snapshot.queryParamMap.get('joining') === '1');
 
   readonly form: FormGroup<ScheduleForm>;
 
@@ -114,7 +120,7 @@ export class OnboardingScheduleComponent implements OnInit {
       const me = this.auth.currentUser();
       if (me) this.auth.setUser({ ...me, work_schedule: res.work_schedule });
       this.toast.success('Horario guardado');
-      void this.router.navigateByUrl('/onboarding/tasks');
+      void this.router.navigateByUrl(this.joining() ? '/' : '/onboarding/tasks');
     } finally {
       this.loading.set(false);
     }
