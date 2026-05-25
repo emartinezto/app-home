@@ -34,9 +34,13 @@ import { Subscription } from 'rxjs';
     @if (loading()) {
       <p class="text-sm text-gray-500 text-center py-8">Cargando…</p>
     } @else {
-      <section class="card mb-4 border-2 border-primary-100">
+      <!-- TU SECCIÓN: editable, marco grueso con tu color -->
+      <section class="card mb-4 border-2" [style.border-color]="myColor()">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="font-medium">Mi disponibilidad</h2>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full" [style.background-color]="myColor()"></span>
+            <h2 class="font-medium">Tus días — {{ userName() }}</h2>
+          </div>
           @if (myConfirmed()) {
             <span class="chip bg-green-50 text-green-700">✓ Enviada</span>
           } @else {
@@ -51,11 +55,9 @@ import { Subscription } from 'rxjs';
             <button
               type="button"
               class="px-3 py-1.5 rounded-full text-xs font-medium transition border"
-              [class.bg-primary]="myOfficeDays().has(d)"
-              [class.border-primary]="myOfficeDays().has(d)"
-              [class.text-white]="myOfficeDays().has(d)"
-              [class.border-gray-300]="!myOfficeDays().has(d)"
-              [class.text-gray-700]="!myOfficeDays().has(d)"
+              [style.background-color]="myOfficeDays().has(d) ? myColor() : 'transparent'"
+              [style.border-color]="myOfficeDays().has(d) ? myColor() : '#D1D5DB'"
+              [style.color]="myOfficeDays().has(d) ? 'white' : '#374151'"
               [disabled]="myConfirmed()"
               (click)="toggleMyDay(d)">
               {{ shortLabel(d) }}
@@ -65,40 +67,43 @@ import { Subscription } from 'rxjs';
         <p class="text-xs text-gray-500">{{ myOfficeDays().size }} días en oficina · {{ myRemoteHours() }}h teletrabajo aprox.</p>
       </section>
 
+      <!-- PAREJA: read-only, fondo grisáceo, chips con su color y tachados si no van -->
       <section class="card mb-4 bg-gray-50 border-gray-200">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="font-medium text-gray-700">Lo que ha enviado {{ partnerName() }}</h2>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full" [style.background-color]="partnerColor()"></span>
+            <h2 class="font-medium text-gray-800">Días de {{ partnerName() }}</h2>
+          </div>
           @if (partnerConfirmed()) {
             <span class="chip bg-green-50 text-green-700">✓ Enviada</span>
           } @else {
             <span class="chip bg-gray-100 text-gray-500">⏳ Aún no envía</span>
           }
         </div>
+        <p class="text-xs text-gray-500 mb-2 italic">Solo informativo — esto lo edita {{ partnerName() }} desde su móvil.</p>
         @if (partnerConfirmed()) {
           <div class="flex gap-2 flex-wrap">
             @for (d of weekdays; track d) {
               <span
                 class="px-3 py-1.5 rounded-full text-xs font-medium border"
-                [class.bg-gray-200]="partnerOfficeDays().has(d)"
-                [class.border-gray-300]="partnerOfficeDays().has(d)"
-                [class.text-gray-700]="partnerOfficeDays().has(d)"
-                [class.border-gray-200]="!partnerOfficeDays().has(d)"
-                [class.text-gray-400]="!partnerOfficeDays().has(d)">
+                [style.background-color]="partnerOfficeDays().has(d) ? partnerColor() : 'transparent'"
+                [style.border-color]="partnerOfficeDays().has(d) ? partnerColor() : '#E5E7EB'"
+                [style.color]="partnerOfficeDays().has(d) ? 'white' : '#9CA3AF'">
                 {{ shortLabel(d) }}
               </span>
             }
           </div>
         } @else {
-          <p class="text-xs text-gray-500">Tu pareja tiene que entrar a esta misma pantalla en su móvil y marcar sus días.</p>
+          <p class="text-sm text-gray-500">Aún no ha enviado su disponibilidad.</p>
         }
       </section>
 
       <p class="text-center text-xs text-gray-500 mb-4">
-        Generamos la propuesta cuando ambos hayáis enviado.
+        Generaremos la propuesta cuando ambos hayáis enviado.
       </p>
 
       <button class="btn-primary w-full" (click)="save()" [disabled]="saving() || myConfirmed()">
-        {{ saving() ? 'Guardando…' : myConfirmed() ? '✓ Confirmado' : 'Guardar mi disponibilidad' }}
+        {{ saving() ? 'Enviando…' : myConfirmed() ? '✓ Ya has enviado la tuya' : 'Enviar mi disponibilidad' }}
       </button>
 
       @if (bothConfirmed() && !proposalGenerating()) {
@@ -133,7 +138,10 @@ export class AvailabilityComponent implements OnInit, OnDestroy {
   readonly prefilled = signal(false);
 
   readonly rangeLabel = computed(() => formatRange(this.weekStart()));
+  readonly userName = computed(() => this.auth.currentUser()?.name ?? '');
+  readonly myColor = computed(() => this.auth.currentUser()?.avatar_color ?? '#4A6FA5');
   readonly partnerName = computed(() => this.household.partner()?.name ?? 'Pareja');
+  readonly partnerColor = computed(() => this.household.partner()?.avatar_color ?? '#9CA3AF');
 
   readonly myEntry = computed(() => {
     const me = this.auth.currentUser();
