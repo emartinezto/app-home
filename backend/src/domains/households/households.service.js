@@ -9,6 +9,7 @@ import {
   updateInviteCode,
 } from './households.repository.js';
 import { findUsersByHousehold, setUserHousehold } from '../users/users.repository.js';
+import { emitToHousehold } from '../../sockets/index.js';
 
 function inviteExpiresAt() {
   const d = new Date();
@@ -81,12 +82,13 @@ export async function joinHousehold(userId, { invite_code }) {
     throw E.unprocessable('INVITE_CODE_EXPIRED', 'El código de invitación ha caducado');
   }
 
-  return withTransaction(async (conn) => {
+  const result = await withTransaction(async (conn) => {
     const userRows = await conn.query(
       `SELECT id, household_id FROM users WHERE id = ? FOR UPDATE`,
       [userId],
     );
     if (userRows.length === 0) throw E.notFound('Usuario no encontrado');
+    let actuallyJoined = false;
     if (userRows[0].household_id === household.id) {
       // idempotente: ya estás dentro
     } else if (userRows[0].household_id) {
@@ -94,11 +96,15 @@ export async function joinHousehold(userId, { invite_code }) {
     } else {
       // Esto puede disparar el trigger HOUSEHOLD_FULL → mapeado en errorHandler
       await setUserHousehold(conn, userId, household.id);
+      actuallyJoined = true;
     }
 
     const fullHh = await findHouseholdById(household.id, conn);
     const members = await findUsersByHousehold(household.id, conn);
+    const joinedUser = members.find((m) => Number(m.id) === Number(userId));
     return {
+      actuallyJoined,
+      joinedUser,
       household: {
         id: fullHh.id,
         name: fullHh.name,
@@ -107,6 +113,16 @@ export async function joinHousehold(userId, { invite_code }) {
       },
     };
   });
+
+  if (result.actuallyJoined && result.joinedUser) {
+    emitToHousehold(household.id, 'household:member-joined', {
+      user_id: Number(result.joinedUser.id),
+      name: result.joinedUser.name,
+      avatar_color: result.joinedUser.avatar_color,
+    });
+  }
+
+  return { household: result.household };
 }
 
 export async function getMyHousehold(householdId) {
