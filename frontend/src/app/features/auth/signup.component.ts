@@ -6,6 +6,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { ApiError } from '@core/types/api.types';
 import { HouseholdStore } from '@core/stores/household.store';
+import { SocketService } from '@core/services/socket.service';
 import { ToastService } from '@core/services/toast.service';
 
 interface SignupForm {
@@ -70,6 +71,7 @@ export class SignupComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private socket = inject(SocketService);
 
   private readonly inviteCode = (this.route.snapshot.queryParamMap.get('code') ?? '').trim().toUpperCase();
 
@@ -94,6 +96,7 @@ export class SignupComponent {
           this.household.setHousehold(res.household);
           const me = this.auth.currentUser();
           if (me) this.auth.setUser({ ...me, household_id: res.household.id });
+          this.socket.reconnect();
           this.toast.success('Cuenta creada y unido al hogar');
           void this.router.navigate(['/onboarding/schedule'], { queryParams: { joining: '1' } });
           return;

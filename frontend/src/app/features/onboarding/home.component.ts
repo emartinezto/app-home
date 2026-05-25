@@ -5,6 +5,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { HouseholdStore } from '@core/stores/household.store';
 import { ProgressBarComponent } from '@shared/components/progress-bar.component';
+import { SocketService } from '@core/services/socket.service';
 import { ToastService } from '@core/services/toast.service';
 
 @Component({
@@ -48,6 +49,7 @@ export class OnboardingHomeComponent {
   private household = inject(HouseholdStore);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private socket = inject(SocketService);
 
   readonly loading = signal(false);
 
@@ -63,6 +65,7 @@ export class OnboardingHomeComponent {
       this.household.setHousehold(res.household);
       const me = this.auth.currentUser();
       if (me) this.auth.setUser({ ...me, household_id: res.household.id });
+      this.socket.reconnect();
       this.toast.success('Hogar creado');
       void this.router.navigateByUrl('/onboarding/invite');
     } catch {

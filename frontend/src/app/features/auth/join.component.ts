@@ -5,6 +5,7 @@ import { ApiService } from '@core/services/api.service';
 import { ApiError } from '@core/types/api.types';
 import { AuthService } from '@core/services/auth.service';
 import { HouseholdStore } from '@core/stores/household.store';
+import { SocketService } from '@core/services/socket.service';
 import { ToastService } from '@core/services/toast.service';
 
 @Component({
@@ -43,6 +44,7 @@ export class JoinComponent {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private household = inject(HouseholdStore);
+  private socket = inject(SocketService);
   private toast = inject(ToastService);
 
   readonly code = signal<string>('');
@@ -81,6 +83,7 @@ export class JoinComponent {
       this.household.setHousehold(res.household);
       const me = this.auth.currentUser();
       if (me) this.auth.setUser({ ...me, household_id: res.household.id });
+      this.socket.reconnect();
       this.toast.success('Te has unido al hogar');
       this.status.set('success');
       void this.router.navigate(['/onboarding/schedule'], { queryParams: { joining: '1' } });

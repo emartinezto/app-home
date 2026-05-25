@@ -118,6 +118,12 @@ export class SocketService {
     this.connect();
   }
 
+  /** Reconecta tras un cambio de household (crear o unirse a hogar). */
+  reconnect(): void {
+    this.disconnect();
+    this.connect();
+  }
+
   emitWeeklyViewing(weekStart: string): void {
     this.socket?.emit('weekly:viewing', { week_start: weekStart });
   }
