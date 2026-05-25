@@ -9,6 +9,7 @@ import {
 import { findUserById, findUsersByHousehold } from '../users/users.repository.js';
 import { findProposalByHouseholdAndWeek } from './proposals.repository.js';
 import { generateForWeek } from './proposals.service.js';
+import { emitToHousehold } from '../../sockets/index.js';
 
 async function maybeAutoGenerateProposal(userId, weekStart) {
   try {
@@ -51,6 +52,14 @@ export async function getAvailabilityForWeek(householdId, weekStart) {
 export async function setMyAvailability(userId, householdId, weekStart, { office_days }) {
   await upsertAvailability(userId, householdId, weekStart, office_days);
   const row = await findAvailabilityByUserAndWeek(userId, weekStart);
+
+  emitToHousehold(householdId, 'weekly:availability-set', {
+    user_id: Number(userId),
+    week_start: weekStart,
+    office_days: row.office_days,
+    confirmed: row.confirmed,
+  });
+
   return {
     user_id: userId,
     week_start: weekStart,
@@ -69,6 +78,15 @@ export async function confirmMyAvailability(userId, weekStart) {
   }
   await confirmAvailability(userId, weekStart);
   const updated = await findAvailabilityByUserAndWeek(userId, weekStart);
+
+  const me = await findUserById(userId);
+  if (me?.household_id) {
+    emitToHousehold(me.household_id, 'weekly:availability-confirmed', {
+      user_id: Number(userId),
+      week_start: weekStart,
+      confirmed_at: updated.confirmed_at,
+    });
+  }
 
   // Fire-and-forget: si al confirmar ya están ambos confirmados,
   // generamos la propuesta automáticamente sin esperar al cron del domingo.

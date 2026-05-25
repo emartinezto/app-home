@@ -34,13 +34,13 @@ import { Subscription } from 'rxjs';
     @if (loading()) {
       <p class="text-sm text-gray-500 text-center py-8">Cargando…</p>
     } @else {
-      <section class="card mb-4">
+      <section class="card mb-4 border-2 border-primary-100">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="font-medium">Tú</h2>
+          <h2 class="font-medium">Mi disponibilidad</h2>
           @if (myConfirmed()) {
-            <span class="chip bg-green-50 text-green-700">✓ Hecho</span>
+            <span class="chip bg-green-50 text-green-700">✓ Enviada</span>
           } @else {
-            <span class="chip bg-gray-100 text-gray-600">⏳ Pendiente</span>
+            <span class="chip bg-amber-50 text-amber-700">⏳ Te toca enviar</span>
           }
         </div>
         @if (prefilled() && !myConfirmed()) {
@@ -65,28 +65,32 @@ import { Subscription } from 'rxjs';
         <p class="text-xs text-gray-500">{{ myOfficeDays().size }} días en oficina · {{ myRemoteHours() }}h teletrabajo aprox.</p>
       </section>
 
-      <section class="card mb-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="font-medium">{{ partnerName() }}</h2>
+      <section class="card mb-4 bg-gray-50 border-gray-200">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-medium text-gray-700">Lo que ha enviado {{ partnerName() }}</h2>
           @if (partnerConfirmed()) {
-            <span class="chip bg-green-50 text-green-700">✓ Hecho</span>
+            <span class="chip bg-green-50 text-green-700">✓ Enviada</span>
           } @else {
-            <span class="chip bg-gray-100 text-gray-600">⏳ Pendiente</span>
+            <span class="chip bg-gray-100 text-gray-500">⏳ Aún no envía</span>
           }
         </div>
-        <div class="flex gap-2 flex-wrap">
-          @for (d of weekdays; track d) {
-            <span
-              class="px-3 py-1.5 rounded-full text-xs font-medium border"
-              [class.bg-gray-100]="partnerOfficeDays().has(d)"
-              [class.border-gray-300]="partnerOfficeDays().has(d)"
-              [class.text-gray-700]="partnerOfficeDays().has(d)"
-              [class.border-gray-200]="!partnerOfficeDays().has(d)"
-              [class.text-gray-400]="!partnerOfficeDays().has(d)">
-              {{ shortLabel(d) }}
-            </span>
-          }
-        </div>
+        @if (partnerConfirmed()) {
+          <div class="flex gap-2 flex-wrap">
+            @for (d of weekdays; track d) {
+              <span
+                class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                [class.bg-gray-200]="partnerOfficeDays().has(d)"
+                [class.border-gray-300]="partnerOfficeDays().has(d)"
+                [class.text-gray-700]="partnerOfficeDays().has(d)"
+                [class.border-gray-200]="!partnerOfficeDays().has(d)"
+                [class.text-gray-400]="!partnerOfficeDays().has(d)">
+                {{ shortLabel(d) }}
+              </span>
+            }
+          </div>
+        } @else {
+          <p class="text-xs text-gray-500">Tu pareja tiene que entrar a esta misma pantalla en su móvil y marcar sus días.</p>
+        }
       </section>
 
       <p class="text-center text-xs text-gray-500 mb-4">
