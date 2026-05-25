@@ -24,7 +24,9 @@ type ScheduleForm = Record<DayKey, FormGroup<DayForm>>;
   template: `
     <div class="min-h-screen bg-white flex flex-col safe-top safe-bottom">
       <div class="container-page px-4 pt-6 pb-12 flex-1 flex flex-col">
-        @if (joining()) {
+        @if (editMode()) {
+          <button class="text-sm text-primary self-start mb-2" (click)="back()">← Volver</button>
+        } @else if (joining()) {
           <p class="text-xs text-gray-500">Último paso para unirte al hogar</p>
         } @else {
           <cg-progress-bar [value]="60" />
@@ -32,7 +34,13 @@ type ScheduleForm = Record<DayKey, FormGroup<DayForm>>;
         }
 
         <h1 class="text-2xl font-medium text-gray-900 mt-4">Tu horario laboral</h1>
-        <p class="text-sm text-gray-500 mb-6">Indica tus horas habituales para los días de oficina.</p>
+        <p class="text-sm text-gray-500 mb-6">
+          @if (editMode()) {
+            Cambia tus horas o teletrabajo. Se aplicará a partir de la siguiente semana que confirmes.
+          } @else {
+            Indica tus horas habituales para los días de oficina.
+          }
+        </p>
 
         <form [formGroup]="form" class="space-y-3 flex-1">
           @for (day of weekdays; track day) {
@@ -61,7 +69,7 @@ type ScheduleForm = Record<DayKey, FormGroup<DayForm>>;
         </form>
 
         <button class="btn-primary w-full mt-6" (click)="submit()" [disabled]="loading()">
-          {{ loading() ? 'Guardando…' : 'Siguiente' }}
+          {{ loading() ? 'Guardando…' : editMode() ? 'Guardar cambios' : 'Siguiente' }}
         </button>
       </div>
     </div>
@@ -79,6 +87,7 @@ export class OnboardingScheduleComponent implements OnInit {
   readonly loading = signal(false);
   readonly weekdays: DayKey[] = dayKeysWeekdays();
   readonly joining = signal(this.route.snapshot.queryParamMap.get('joining') === '1');
+  readonly editMode = signal(this.route.snapshot.queryParamMap.get('edit') === '1');
 
   readonly form: FormGroup<ScheduleForm>;
 
@@ -96,7 +105,24 @@ export class OnboardingScheduleComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.household.load();
+    if (this.editMode()) {
+      const schedule = this.auth.currentUser()?.work_schedule ?? null;
+      if (schedule) {
+        for (const d of this.weekdays) {
+          const day = schedule[d];
+          if (!day) continue;
+          const grp = this.form.controls[d];
+          grp.patchValue({
+            is_remote: day.location === 'home',
+            start_time: day.start ?? '09:00',
+            end_time: day.end ?? '18:00',
+          });
+        }
+      }
+    }
   }
+
+  back(): void { void this.router.navigateByUrl('/profile'); }
 
   longLabel(d: DayKey): string { return dayLong(d); }
 
@@ -120,7 +146,13 @@ export class OnboardingScheduleComponent implements OnInit {
       const me = this.auth.currentUser();
       if (me) this.auth.setUser({ ...me, work_schedule: res.work_schedule });
       this.toast.success('Horario guardado');
-      void this.router.navigateByUrl(this.joining() ? '/' : '/onboarding/tasks');
+      if (this.editMode()) {
+        void this.router.navigateByUrl('/profile');
+      } else if (this.joining()) {
+        void this.router.navigateByUrl('/');
+      } else {
+        void this.router.navigateByUrl('/onboarding/tasks');
+      }
     } finally {
       this.loading.set(false);
     }

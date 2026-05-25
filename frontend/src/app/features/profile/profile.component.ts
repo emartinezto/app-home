@@ -73,6 +73,7 @@ import { es } from 'date-fns/locale';
         </div>
       </section>
 
+      <button class="btn-secondary w-full mb-2" (click)="editSchedule()">Editar mi horario laboral</button>
       <button class="btn-secondary w-full mb-2" (click)="goSettings()">Ajustes del hogar</button>
       <button class="btn-outline w-full mb-2" (click)="logout()">Cerrar sesión</button>
       <button class="btn-danger-outline w-full" (click)="confirmLeave.set(true)">Salir del hogar</button>
@@ -156,6 +157,7 @@ export class ProfileComponent implements OnInit {
   }
 
   goSettings(): void { void this.router.navigateByUrl('/settings'); }
+  editSchedule(): void { void this.router.navigate(['/onboarding/schedule'], { queryParams: { edit: '1' } }); }
 
   async logout(): Promise<void> {
     await this.auth.logout();
